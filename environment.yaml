@@ -1,0 +1,14 @@
+name: pypub
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.11.*
+  - numpy
+  - pandas
+  - tabulate
+  - sqlite
+  - typing
+  - bibtexparser
+  - time
+  - pyyaml
