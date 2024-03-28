@@ -8,6 +8,7 @@ from typing import Dict, List, Optional, Union, Tuple
 import bibtexparser
 import traceback
 import time
+import textwrap
 
 ###############################################################################
 ### Utility functions
@@ -54,6 +55,11 @@ def truncate_entries(rows: List[Tuple], col_index: int, length: int) -> List[Tup
         new_row = tuple(truncated_entry if i == col_index else row[i] for i in range(len(row)))
         truncated_rows.append(new_row)
     return truncated_rows
+
+
+def wrap_text(text, width):
+    """Wrap text for a given width."""
+    return '\n'.join(textwrap.wrap(text, width))
 
 
 ###############################################################################
@@ -301,6 +307,41 @@ class Pub:
             return publications
 
 
+    def get_all_publications(self) -> List[Optional[Dict[str, Union[str, bool]]]]:
+        """
+        Fetches all publications from the database and returns them as a list of dictionaries.
+
+        Returns:
+            List[Optional[Dict]]: A list of all publications in the database.
+        """
+        try:
+            conn = sqlite3.connect(self.db_path)
+            c = conn.cursor()
+
+            # Query to select all entries from the publications table
+            query = "SELECT id, title, first_author_last_name, " + \
+                    "principal_investigator_last_name, field, date_accessed, " + \
+                    "date_published, cited_in_paper, want_to_cite, " + \
+                    "own_paper, bibtex, primary_id FROM publications"
+
+            c.execute(query)
+            # Use the cursor's description attribute to get column names and
+            # generate dictionaries for each row
+            publications = [dict(zip([column[0] for column in c.description], row))
+                            for row in c.fetchall()]
+
+        except sqlite3.Error as e:
+            print("\033[38;5;223m" + f"SQLite error: {e}" + "\033[0m")
+            traceback.print_exc()
+            return []
+
+        finally:
+            if 'c' in locals():
+                c.close()  # Close the cursor if it exists
+            conn.close()
+            return publications
+
+
     def get_distinct_attributes(self) -> List[str]:
         """
         Fetches the distinct column names from the database to use as attributes for searching.
@@ -386,9 +427,9 @@ class Pub:
         for pub in publications:
             row = [
                 pub.get('id',''),
-                pub.get('title', '')[:15],
-                pub.get('first_author_last_name', ''),  # Truncate the second column
-                pub.get('principal_investigator_last_name', ''),
+                pub.get('title', '')[:20]+'\n'+pub.get('title', '')[20:40],
+                pub.get('first_author_last_name', '')[:15],  # Truncate the second column
+                pub.get('principal_investigator_last_name', '')[:15],
                 pub.get('field', ''),
                 pub.get('date_accessed', ''),
                 pub.get('date_published', ''),
@@ -397,7 +438,7 @@ class Pub:
             ]
             table_data.append(row)
 
-        print("\033[38;5;223m"+tabulate(table_data, headers, tablefmt="pipe")+"\033[0m")
+        print("\033[38;5;223m"+tabulate(table_data, headers, tablefmt="rounded_grid")+"\033[0m")
 
 
     def display_entire_database(self) -> None:
@@ -436,11 +477,13 @@ class Pub:
             truncated_rows = []
             for row in rows:
                 truncated_row = list(row)
-                truncated_row[1] = truncated_row[1][:15]  # Truncate the second column
-                truncated_row = truncated_row[:-2]  # Omit the final column
+                truncated_row[1] = truncated_row[1][:20]+'\n'+truncated_row[1][20:40]  # Truncate the second column
+                truncated_row[2] = truncated_row[2][:15]  # Truncate the third column
+                truncated_row[3] = truncated_row[3][:15]  # Truncate the third column
+                truncated_row = truncated_row[:-3]  # Omit the final column
                 truncated_rows.append(tuple(truncated_row))
 
-            print("\033[38;5;223m"+tabulate(truncated_rows, headers=column_names, tablefmt='pipe')+"\033[0m")
+            print("\033[38;5;223m"+tabulate(truncated_rows, headers=column_names, tablefmt="rounded_grid")+"\033[0m")
 
         except sqlite3.Error as e:
             print("\033[38;5;223m"+f"SQLite error: {e}"+"\033[0m")
@@ -686,6 +729,13 @@ class Pub:
         except IOError as e:
             print(f"An error occurred while writing the BibTeX file: {e}"+"\033[0m")
             traceback.print_exc()
+
+
+    def generate_bibtex_file_database(self, filename: str) -> None:
+        """
+        Now do it for the whole database
+        """
+        self.generate_bibtex_file(filename, self.get_all_publications())
 
 
     def prompt_for_bibtex_record(self) -> str:

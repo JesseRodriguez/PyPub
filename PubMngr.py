@@ -38,7 +38,9 @@ def print_commands() -> None:
     print("\033[38;5;223m"+"- add: Add publications from the sorting directory"+"\033[0m")
     print("\033[38;5;223m"+"- search: Search for publications by attribute"+"\033[0m")
     print("\033[38;5;223m"+"- display: Display entire database in one table"+"\033[0m")
+    print("\033[38;5;223m"+"- bibtex: Create .bib file using entire database"+"\033[0m")
     print("\033[38;5;223m"+"- modify: Modify one of the attributes for a given publication"+"\033[0m")
+    print("\033[38;5;223m"+"- remove: Remove a publication fromt he database"+"\033[0m")
     print("\033[38;5;223m"+"- view: View the .pdf corresponding to a given publication"+"\033[0m")
     print("\033[38;5;223m"+"- exit: Exit the program"+"\033[0m")
 
@@ -128,6 +130,7 @@ def handle_search_command(pub: Pub) -> None:
         filename = input("\033[38;5;223m"+"Enter the filename for the BibTeX "+\
                          "file (not including .bib): "+"\033[0m")
         pub.generate_bibtex_file(filename, publications)
+        print("\033[38;5;223m"+"Note that .bib files are places in the bibfiles/ sub-directory in the database directory."+"\033[0m")
     elif user_choice == "view" or user_choice == 'v':
         publication_id = int(input("\033[38;5;223m"+"Enter the publication ID "+\
                                    "to view: "+"\033[0m"))
@@ -177,6 +180,13 @@ def main() -> None:
         elif command == "modify" or command == "m":
             pub_id = int(input("\033[38;5;223m"+"Enter the publication ID:"+"\033[0m"))
             handle_modify_command(pub, pub_id)
+        elif command == "remove" or command == "r":
+            pub_id = int(input("\033[38;5;223m"+"Enter the publication ID:"+"\033[0m"))
+            pub.delete_publication_by_id(pub_id)
+        elif command == "bibtex" or command == "b":
+            filename = input("\033[38;5;223m"+"Enter the file name (without the .bib):"+"\033[0m")
+            pub.generate_bibtex_file_database(filename)
+            print("\033[38;5;223m"+"Note that .bib files are places in the bibfiles/ sub-directory in the database directory."+"\033[0m")
         elif command == "display" or command == "d":
             pub.display_entire_database()
         elif command == "exit" or command == "e":
